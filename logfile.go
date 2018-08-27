@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -22,13 +22,20 @@ func newLogfile(filename string) (*logfile, error) {
 				return nil, fmt.Errorf("error creating '%s': %s", deprDir, err)
 			}
 		} else if stat.IsDir() {
-			return nil, fmt.Errorf("Error: '%s' is a directory.", filename)
+			return nil, fmt.Errorf("error: '%s' is a directory", filename)
 		}
 	}
 
 	return &logfile{
 		filename: filename,
 	}, nil
+}
+
+type deprlog struct {
+	New string
+	Old string
+
+	Now time.Time
 }
 
 func (l *logfile) Append(oldPath, newPath string, now time.Time) {
@@ -38,18 +45,6 @@ func (l *logfile) Append(oldPath, newPath string, now time.Time) {
 		log.Fatal(err)
 	}
 
-	w := csv.NewWriter(logf)
-	defer func() {
-		w.Flush()
-		err := w.Error()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	w.Write([]string{
-		newPath,
-		oldPath,
-		now.String(),
-	})
+	w := json.NewEncoder(logf)
+	w.Encode(deprlog{New: newPath, Old: oldPath, Now: now})
 }

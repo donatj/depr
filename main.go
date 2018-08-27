@@ -43,7 +43,6 @@ func init() {
 
 func init() {
 	flag.Parse()
-
 }
 
 func main() {

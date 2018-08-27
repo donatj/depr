@@ -45,9 +45,7 @@ func getMvPath(now time.Time, name string) (string, string, error) {
 		}
 
 		p := filepath.Join(
-			now.Format("2006"),
-			now.Format("01"),
-			now.Format("02"),
+			now.Format("2006-01-02"),
 			strconv.Itoa(j),
 		)
 

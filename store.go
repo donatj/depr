@@ -7,13 +7,15 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
+
+	"github.com/mholt/archiver"
 )
 
-func store(files map[string]string) {
+func store(files map[string]string, set, descr string) {
 	now := time.Now()
 
 	for ff, f := range files {
-		ffp, fp, err := getMvPath(now, f)
+		ffp, fp, err := getMvPath(now, f, set)
 		_ = fp
 		if err != nil {
 			log.Println(err)
@@ -32,11 +34,32 @@ func store(files map[string]string) {
 			continue
 		}
 
-		deprLog.Append(ff, ffp, now)
+		if *archive {
+			zipfp := ffp + ".zip"
+			err = archiver.Zip.Make(zipfp, []string{ffp})
+			if err != nil {
+				log.Println(err)
+				log.Printf("leaving unarchived file: %s", ffp)
+				deprLog.Append(ff, ffp, descr, now)
+				continue
+			}
+
+			deprLog.Append(ff, zipfp, descr, now)
+
+			err = os.RemoveAll(ffp)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			continue
+		}
+
+		deprLog.Append(ff, ffp, descr, now)
 	}
 }
 
-func getMvPath(now time.Time, name string) (string, string, error) {
+func getMvPath(now time.Time, name, set string) (string, string, error) {
 	j := 0
 	for {
 		j++
@@ -45,6 +68,7 @@ func getMvPath(now time.Time, name string) (string, string, error) {
 		}
 
 		p := filepath.Join(
+			set,
 			now.Format("2006-01-02"),
 			strconv.Itoa(j),
 		)

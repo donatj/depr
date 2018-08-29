@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	homedir "github.com/mitchellh/go-homedir"
 )
@@ -12,6 +13,10 @@ import (
 var (
 	deprDir string
 	deprLog *logfile
+
+	set     = flag.String("set", "default", "Set to store to")
+	descr   = flag.String("descr", "", "Description of items being stored")
+	archive = flag.Bool("a", false, "archive the contents")
 )
 
 func init() {
@@ -35,7 +40,7 @@ func init() {
 
 	lf := filepath.Join(deprDir, "depr.log")
 
-	deprLog, err = newLogfile(lf)
+	deprLog, err = newLogfile(deprDir, lf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -43,6 +48,11 @@ func init() {
 
 func init() {
 	flag.Parse()
+
+	valid := regexp.MustCompile(`^[\p{L}\d_\-]{1,63}$`)
+	if !valid.MatchString(*set) {
+		log.Fatal("invalid set name")
+	}
 }
 
 func main() {
@@ -61,5 +71,6 @@ func main() {
 
 		deprFiles[p] = stat.Name()
 	}
-	store(deprFiles)
+
+	store(deprFiles, *set, *descr)
 }

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mholt/archiver"
+	"github.com/mholt/archiver/v3"
 )
 
 func store(files map[string]string, set, descr string) {
@@ -36,7 +36,8 @@ func store(files map[string]string, set, descr string) {
 
 		if *archive {
 			zipfp := ffp + ".zip"
-			err = archiver.Zip.Make(zipfp, []string{ffp})
+
+			err = archiver.Archive([]string{ffp}, zipfp)
 			if err != nil {
 				log.Println(err)
 				log.Printf("leaving unarchived file: %s", ffp)

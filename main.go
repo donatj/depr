@@ -15,7 +15,7 @@ var (
 	deprLog *logfile
 
 	set     = flag.String("set", "default", "Set to store to")
-	descr   = flag.String("descr", "", "Description of items being stored")
+	msg     = flag.String("msg", "", "Description of items being stored")
 	archive = flag.Bool("a", false, "archive the contents")
 )
 
@@ -49,6 +49,11 @@ func init() {
 func init() {
 	flag.Parse()
 
+	if flag.NArg() < 1 {
+		flag.Usage()
+		os.Exit(1)
+	}
+
 	valid := regexp.MustCompile(`^[\p{L}\d_\-]{1,63}$`)
 	if !valid.MatchString(*set) {
 		log.Fatal("invalid set name")
@@ -56,7 +61,6 @@ func init() {
 }
 
 func main() {
-
 	deprFiles := make(map[string]string)
 	for _, e := range flag.Args() {
 		stat, err := os.Stat(e)
@@ -72,5 +76,5 @@ func main() {
 		deprFiles[p] = stat.Name()
 	}
 
-	store(deprFiles, *set, *descr)
+	store(deprFiles, *set, *msg)
 }

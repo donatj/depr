@@ -7,16 +7,13 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
-
-	"github.com/mholt/archiver/v3"
 )
 
-func store(files map[string]string, set, descr string) {
+func store(files map[string]storeDetails, set, descr string) {
 	now := time.Now()
 
-	for ff, f := range files {
-		ffp, fp, err := getMvPath(now, f, set)
-		_ = fp
+	for _, f := range files {
+		ffp, fp, err := getMvPath(now, f.modPath, set)
 		if err != nil {
 			log.Println(err)
 			continue
@@ -28,35 +25,13 @@ func store(files map[string]string, set, descr string) {
 			continue
 		}
 
-		err = os.Rename(ff, ffp)
+		err = os.Rename(f.modPath, ffp)
 		if err != nil {
 			log.Println(err)
 			continue
 		}
 
-		if *archive {
-			zipfp := ffp + ".zip"
-
-			err = archiver.Archive([]string{ffp}, zipfp)
-			if err != nil {
-				log.Println(err)
-				log.Printf("leaving unarchived file: %s", ffp)
-				deprLog.Append(ff, ffp, descr, now)
-				continue
-			}
-
-			deprLog.Append(ff, zipfp, descr, now)
-
-			err = os.RemoveAll(ffp)
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-
-			continue
-		}
-
-		deprLog.Append(ff, ffp, descr, now)
+		deprLog.Append(f.origPath, ffp, descr, now)
 	}
 }
 
@@ -65,7 +40,7 @@ func getMvPath(now time.Time, name, set string) (string, string, error) {
 	for {
 		j++
 		if j > 255 {
-			return "", "", fmt.Errorf("Too many retries")
+			return "", "", fmt.Errorf("too many retries - %d", j)
 		}
 
 		p := filepath.Join(

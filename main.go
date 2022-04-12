@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/mholt/archiver/v3"
+
 	homedir "github.com/mitchellh/go-homedir"
 )
 
@@ -60,8 +62,13 @@ func init() {
 	}
 }
 
+type storeDetails struct {
+	origPath string
+	modPath  string
+}
+
 func main() {
-	deprFiles := make(map[string]string)
+	deprFiles := make(map[string]storeDetails)
 	for _, e := range flag.Args() {
 		stat, err := os.Stat(e)
 		if err != nil {
@@ -73,7 +80,24 @@ func main() {
 			log.Fatal(err)
 		}
 
-		deprFiles[p] = stat.Name()
+		name := stat.Name()
+		if *archive {
+			zipfp := name + ".zip"
+			err = archiver.Archive([]string{name}, zipfp)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = os.RemoveAll(name)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			deprFiles[p] = storeDetails{origPath: p, modPath: zipfp}
+		} else {
+			deprFiles[p] = storeDetails{origPath: p, modPath: name}
+		}
 	}
 
 	store(deprFiles, *set, *msg)

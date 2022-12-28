@@ -104,6 +104,12 @@ func store(files map[string]storeDetails, set, descr string) {
 			continue
 		}
 
+		host, err := os.Hostname()
+		if err != nil {
+			log.Printf("error getting hostname: %s -- storing as 'unknown'", err)
+			host = "unknown"
+		}
+
 		deprLog.Append(deprlog{
 			Old:   f.origPath,
 			New:   ffp,
@@ -111,6 +117,8 @@ func store(files map[string]storeDetails, set, descr string) {
 			Now:   now,
 
 			Archived: f.archived,
+
+			Hostname: host,
 		})
 	}
 }

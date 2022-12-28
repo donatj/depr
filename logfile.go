@@ -42,6 +42,8 @@ type deprlog struct {
 
 	Archived bool
 
+	Hostname string
+
 	Now time.Time
 }
 

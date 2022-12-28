@@ -31,7 +31,14 @@ func store(files map[string]storeDetails, set, descr string) {
 			continue
 		}
 
-		deprLog.Append(f.origPath, ffp, descr, now)
+		deprLog.Append(deprlog{
+			Old:   f.origPath,
+			New:   ffp,
+			Descr: descr,
+			Now:   now,
+
+			Archived: f.archived,
+		})
 	}
 }
 

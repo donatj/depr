@@ -65,6 +65,7 @@ func init() {
 type storeDetails struct {
 	origPath string
 	modPath  string
+	archived bool
 }
 
 func main() {
@@ -94,7 +95,7 @@ func main() {
 				continue
 			}
 
-			deprFiles[p] = storeDetails{origPath: p, modPath: zipfp}
+			deprFiles[p] = storeDetails{origPath: p, modPath: zipfp, archived: true}
 		} else {
 			deprFiles[p] = storeDetails{origPath: p, modPath: name}
 		}

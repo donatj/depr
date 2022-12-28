@@ -39,28 +39,25 @@ type deprlog struct {
 	Old   string
 	Descr string `json:",omitempty"`
 
+	Archived bool
+
 	Now time.Time
 }
 
-func (l *logfile) Append(oldPath, newPath, descr string, now time.Time) {
+func (l *logfile) Append(d deprlog /* oldPath, newPath, descr string, now time.Time */) {
 	logf, err := os.OpenFile(l.filename, os.O_APPEND|os.O_WRONLY, 0600)
 	defer logf.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	rel, err := filepath.Rel(l.deprDir, newPath)
-	if err != nil {
+	rel, err := filepath.Rel(l.deprDir, d.New)
+	if err == nil {
+		d.New = rel
+	} else {
 		log.Printf("error: failed to get relative directory, see latest line of '%s'", l.filename)
-		rel = newPath
 	}
 
 	w := json.NewEncoder(logf)
-	w.Encode(deprlog{
-		New:   rel,
-		Old:   oldPath,
-		Descr: descr,
-
-		Now: now,
-	})
+	w.Encode(d)
 }

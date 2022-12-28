@@ -62,7 +62,10 @@ func (l *logfile) Append(d deprlog) error {
 	}
 
 	w := json.NewEncoder(logf)
-	w.Encode(d)
+	err = w.Encode(d)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

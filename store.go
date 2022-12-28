@@ -44,6 +44,28 @@ func (st *storeCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		return subcommands.ExitFailure
 	}
 
+	msg := st.msg
+	if msg == "" {
+		rl, err := readline.NewEx(&readline.Config{
+			Prompt: "description (enter for none): ",
+
+			DisableAutoSaveHistory: true,
+		})
+		if err != nil {
+			log.Println("error opening readline", err)
+			return subcommands.ExitFailure
+		}
+		defer rl.Close()
+
+		rs := rl.Line()
+		if rs.Error != nil {
+			log.Println(rs.Error)
+			return subcommands.ExitFailure
+		}
+
+		msg = rs.Line
+	}
+
 	deprFiles := make(map[string]storeDetails)
 	for _, e := range f.Args() {
 		stat, err := os.Stat(e)
@@ -85,28 +107,6 @@ func (st *storeCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 		} else {
 			deprFiles[fullPath] = storeDetails{origPath: fullPath, modPath: fullPath}
 		}
-	}
-
-	msg := st.msg
-	if msg == "" {
-		rl, err := readline.NewEx(&readline.Config{
-			Prompt: "description (enter for none): ",
-
-			DisableAutoSaveHistory: true,
-		})
-		if err != nil {
-			log.Println("error opening readline", err)
-			return subcommands.ExitFailure
-		}
-		defer rl.Close()
-
-		rs := rl.Line()
-		if rs.Error != nil {
-			log.Println(rs.Error)
-			return subcommands.ExitFailure
-		}
-
-		msg = rs.Line
 	}
 
 	store(deprFiles, st.set, msg)

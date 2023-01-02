@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -41,15 +42,17 @@ type deprlog struct {
 
 	Archived bool
 
+	Hostname string
+
 	Now time.Time
 }
 
-func (l *logfile) Append(d deprlog /* oldPath, newPath, descr string, now time.Time */) {
+func (l *logfile) Append(d deprlog) error {
 	logf, err := os.OpenFile(l.filename, os.O_APPEND|os.O_WRONLY, 0600)
-	defer logf.Close()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	defer logf.Close()
 
 	rel, err := filepath.Rel(l.deprDir, d.New)
 	if err == nil {
@@ -59,5 +62,31 @@ func (l *logfile) Append(d deprlog /* oldPath, newPath, descr string, now time.T
 	}
 
 	w := json.NewEncoder(logf)
-	w.Encode(d)
+	err = w.Encode(d)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (l *logfile) Read() ([]deprlog, error) {
+	logf, err := os.Open(l.filename)
+	if err != nil {
+		return nil, err
+	}
+	defer logf.Close()
+
+	scanner := bufio.NewScanner(logf)
+	var logs []deprlog
+	for scanner.Scan() {
+		var d deprlog
+		err := json.Unmarshal(scanner.Bytes(), &d)
+		if err != nil {
+			return nil, err
+		}
+		logs = append(logs, d)
+	}
+
+	return logs, err
 }

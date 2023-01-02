@@ -1,24 +1,19 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 
-	"github.com/mholt/archiver/v3"
-
+	"github.com/google/subcommands"
 	homedir "github.com/mitchellh/go-homedir"
 )
 
 var (
 	deprDir string
 	deprLog *logfile
-
-	set     = flag.String("set", "default", "Set to store to")
-	msg     = flag.String("msg", "", "Description of items being stored")
-	archive = flag.Bool("a", false, "archive the contents")
 )
 
 func init() {
@@ -48,58 +43,15 @@ func init() {
 	}
 }
 
-func init() {
-	flag.Parse()
-
-	if flag.NArg() < 1 {
-		flag.Usage()
-		os.Exit(1)
-	}
-
-	valid := regexp.MustCompile(`^[\p{L}\d_\-]{1,63}$`)
-	if !valid.MatchString(*set) {
-		log.Fatal("invalid set name")
-	}
-}
-
-type storeDetails struct {
-	origPath string
-	modPath  string
-	archived bool
-}
-
 func main() {
-	deprFiles := make(map[string]storeDetails)
-	for _, e := range flag.Args() {
-		stat, err := os.Stat(e)
-		if err != nil {
-			log.Fatal(err)
-		}
+	subcommands.Register(subcommands.HelpCommand(), "help")
+	subcommands.Register(subcommands.FlagsCommand(), "help")
+	subcommands.Register(subcommands.CommandsCommand(), "help")
+	store := &storeCmd{}
+	subcommands.Register(store, "")
+	subcommands.Register(subcommands.Alias("s", store), "")
 
-		p, err := filepath.Abs(e)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		name := stat.Name()
-		if *archive {
-			zipfp := name + ".zip"
-			err = archiver.Archive([]string{name}, zipfp)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			err = os.RemoveAll(name)
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-
-			deprFiles[p] = storeDetails{origPath: p, modPath: zipfp, archived: true}
-		} else {
-			deprFiles[p] = storeDetails{origPath: p, modPath: name}
-		}
-	}
-
-	store(deprFiles, *set, *msg)
+	flag.Parse()
+	ctx := context.Background()
+	os.Exit(int(subcommands.Execute(ctx)))
 }

@@ -14,7 +14,7 @@ import (
 
 	"github.com/chzyer/readline"
 	"github.com/google/subcommands"
-	"github.com/mholt/archiver"
+	"github.com/mholt/archiver/v3"
 )
 
 type storeCmd struct {

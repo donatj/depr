@@ -50,6 +50,7 @@ func main() {
 	store := &storeCmd{}
 	subcommands.Register(store, "")
 	subcommands.Register(subcommands.Alias("s", store), "")
+	subcommands.Register(&validateCmd{}, "")
 
 	flag.Parse()
 	ctx := context.Background()

@@ -3,7 +3,9 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"iter"
 	"log"
 	"os"
 	"path/filepath"
@@ -71,22 +73,45 @@ func (l *logfile) Append(d deprlog) error {
 }
 
 func (l *logfile) Read() ([]deprlog, error) {
+	var logs []deprlog
+
+	i, err := l.Iter()
+	if err != nil {
+		return nil, err
+	}
+
+	var oerr error = nil
+	for log, err := range i {
+		logs = append(logs, log)
+		oerr = errors.Join(oerr, err)
+	}
+
+	return logs, oerr
+}
+
+func (l *logfile) Iter() (s iter.Seq2[deprlog, error], oerr error) {
 	logf, err := os.Open(l.filename)
 	if err != nil {
 		return nil, err
 	}
-	defer logf.Close()
 
-	scanner := bufio.NewScanner(logf)
-	var logs []deprlog
-	for scanner.Scan() {
-		var d deprlog
-		err := json.Unmarshal(scanner.Bytes(), &d)
-		if err != nil {
-			return nil, err
+	return func(yield func(deprlog, error) bool) {
+		defer logf.Close()
+
+		scanner := bufio.NewScanner(logf)
+
+		for scanner.Scan() {
+			var d deprlog
+			err := json.Unmarshal(scanner.Bytes(), &d)
+			if !yield(d, err) {
+				return
+			}
 		}
-		logs = append(logs, d)
-	}
 
-	return logs, err
+		if err := scanner.Err(); err != nil {
+			log.Println("Error reading log file:", err)
+			oerr = err
+		}
+
+	}, nil
 }

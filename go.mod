@@ -1,6 +1,8 @@
 module github.com/donatj/depr
 
-go 1.19
+go 1.24.0
+
+toolchain go1.24.1
 
 require (
 	github.com/chzyer/readline v1.5.1

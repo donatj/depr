@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compress/flate"
 	"context"
 	"flag"
 	"fmt"
@@ -14,7 +15,7 @@ import (
 
 	"github.com/chzyer/readline"
 	"github.com/google/subcommands"
-	"github.com/mholt/archiver/v3"
+	"github.com/mholt/archives"
 )
 
 type storeCmd struct {
@@ -41,6 +42,11 @@ func (st *storeCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	valid := regexp.MustCompile(`^[\p{L}\d_\-]{1,63}$`)
 	if !valid.MatchString(st.set) {
 		log.Println("invalid set name")
+		return subcommands.ExitFailure
+	}
+
+	if f.NArg() == 0 {
+		log.Println("no files specified")
 		return subcommands.ExitFailure
 	}
 
@@ -90,7 +96,8 @@ func (st *storeCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 			// todo - clean up old temporary directory
 
 			zipPath := path.Join(tmpdir, shortName+".zip")
-			err = archiver.Archive([]string{fullPath}, zipPath)
+
+			err = createArchive(shortName, fullPath, zipPath)
 			if err != nil {
 				log.Printf("error archiving '%s': %s", fullPath, err)
 				return subcommands.ExitFailure
@@ -112,6 +119,40 @@ func (st *storeCmd) Execute(_ context.Context, f *flag.FlagSet, _ ...interface{}
 	store(deprFiles, st.set, msg)
 
 	return subcommands.ExitSuccess
+}
+
+func createArchive(shortName string, fullPath string, zipPath string) (err error) {
+	ctx := context.TODO()
+	archiveFiles, err := archives.FilesFromDisk(ctx, nil, map[string]string{
+		fullPath: shortName,
+	})
+	if err != nil {
+		return fmt.Errorf("error creating archive filesystem: %w", err)
+	}
+
+	zf, err := os.Create(zipPath)
+	if err != nil {
+		return fmt.Errorf("error creating archive file: %w", err)
+	}
+	defer (func() {
+		err = zf.Close()
+	})()
+
+	format := archives.CompressedArchive{
+		Compression: archives.Gz{
+			CompressionLevel: flate.BestCompression,
+		},
+		Archival: archives.Zip{},
+	}
+
+	fmt.Printf("Archiving %s to %s\n", fullPath, zipPath)
+
+	err = format.Archive(ctx, zf, archiveFiles)
+	if err != nil {
+		return fmt.Errorf("error archiving files: %w", err)
+	}
+
+	return nil
 }
 
 func store(files map[string]storeDetails, set, descr string) {
